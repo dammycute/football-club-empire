@@ -1,0 +1,6 @@
+{
+  "name": "Football Club Empire",
+  "description": "A deep mobile-first football club ownership and chairman tycoon simulation game focusing on business, corporate finance, and long-term investment strategy.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
