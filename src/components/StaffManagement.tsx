@@ -1,10 +1,12 @@
 import React from 'react';
 import { Club, Staff } from '../types/game';
+import { useToast } from './Toast';
 import { Shield, TrendingUp, DollarSign, Award, Trash2, CheckCircle, UserPlus } from 'lucide-react';
 
 interface StaffManagementProps {
   club: Club;
   availableStaff: Staff[];
+  leagueTier: number;
   onHireStaff: (staffId: string) => void;
   onFireStaff: (role: 'manager' | 'ceo' | 'sporting_director') => void;
 }
@@ -12,9 +14,11 @@ interface StaffManagementProps {
 export default function StaffManagement({
   club,
   availableStaff,
+  leagueTier,
   onHireStaff,
   onFireStaff
 }: StaffManagementProps) {
+  const { show: notify } = useToast();
   const currentManager = availableStaff.find((s) => s.id === club.managerId);
   const currentCeo = availableStaff.find((s) => s.id === club.ceoId);
   const currentSportingDirector = availableStaff.find((s) => s.id === club.sportingDirectorId);
@@ -48,9 +52,12 @@ export default function StaffManagement({
     return `£${(sal * 1000).toFixed(0)}k/wk`;
   };
 
-  // Filter out staff already employed elsewhere
+  // Filter out staff already employed elsewhere and those outside league tier range
   const hireableStaff = availableStaff.filter((s) => {
-    return s.id !== club.managerId && s.id !== club.ceoId && s.id !== club.sportingDirectorId;
+    if (s.id === club.managerId || s.id === club.ceoId || s.id === club.sportingDirectorId) return false;
+    const minTier = s.minLeagueTier ?? 1;
+    const maxTier = s.maxLeagueTier ?? 7;
+    return leagueTier >= minTier && leagueTier <= maxTier;
   });
 
   return (
@@ -81,7 +88,7 @@ export default function StaffManagement({
               <button
                 onClick={() => {
                   onFireStaff('manager');
-                  alert('👔 Manager fired. Contract termination fees paid.');
+                  notify('Manager fired. Contract termination fees paid.', 'info');
                 }}
                 className="text-[10px] px-2 py-1 text-rose-400 hover:text-white border border-rose-900/40 hover:bg-rose-950/40 rounded transition-all flex items-center gap-1"
               >
@@ -116,7 +123,7 @@ export default function StaffManagement({
               <button
                 onClick={() => {
                   onFireStaff('ceo');
-                  alert('📈 CEO fired. Severance terms processed.');
+                  notify('CEO fired. Severance terms processed.', 'info');
                 }}
                 className="text-[10px] px-2 py-1 text-rose-400 hover:text-white border border-rose-900/40 hover:bg-rose-950/40 rounded transition-all flex items-center gap-1"
               >
@@ -151,7 +158,7 @@ export default function StaffManagement({
               <button
                 onClick={() => {
                   onFireStaff('sporting_director');
-                  alert('🔍 Sporting Director contract terminated.');
+                  notify('Sporting Director contract terminated.', 'info');
                 }}
                 className="text-[10px] px-2 py-1 text-rose-400 hover:text-white border border-rose-900/40 hover:bg-rose-950/40 rounded transition-all flex items-center gap-1"
               >
@@ -204,7 +211,7 @@ export default function StaffManagement({
               <button
                 onClick={() => {
                   onHireStaff(staffMember.id);
-                  alert(`🎉 Contract signed! ${staffMember.name} is now our official ${getRoleLabel(staffMember.role)}!`);
+                  notify(`${staffMember.name} is now our official ${getRoleLabel(staffMember.role)}!`, 'success');
                 }}
                 className="w-full py-1.5 mt-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-lg transition-all flex items-center justify-center gap-1"
               >

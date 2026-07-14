@@ -8,28 +8,28 @@ export const DEFAULT_DATABASE_ID = 'england-fictional-default';
 export const getDefaultDatabase = (): GameDatabase => {
   const staff: Staff[] = [
     // MANAGERS
-    { id: 'mgr-1', name: 'Jose Cardono', role: 'manager', age: 58, rating: 88, salaryWeekly: 0.12, personality: 'Tactician', avatar: '👔' },
-    { id: 'mgr-2', name: 'Pep Santis', role: 'manager', age: 51, rating: 94, salaryWeekly: 0.18, personality: 'Risk Taker', avatar: '🕶️' },
-    { id: 'mgr-3', name: 'Sean Dikes', role: 'manager', age: 52, rating: 74, salaryWeekly: 0.05, personality: 'Cost Cutter', avatar: '🦁' },
-    { id: 'mgr-4', name: 'Emma Hayes-Jones', role: 'manager', age: 46, rating: 85, salaryWeekly: 0.09, personality: 'Youth Developer', avatar: '👩‍💼' },
-    { id: 'mgr-5', name: 'Roy Hodges', role: 'manager', age: 74, rating: 71, salaryWeekly: 0.03, personality: 'Conservative', avatar: '👴' },
-    { id: 'mgr-6', name: 'Danny McKenn', role: 'manager', age: 39, rating: 78, salaryWeekly: 0.06, personality: 'Youth Developer', avatar: '🏃' },
-    { id: 'mgr-7', name: 'Gavin O\'Reilly', role: 'manager', age: 44, rating: 67, salaryWeekly: 0.02, personality: 'Risk Taker', avatar: '🧢' },
-    { id: 'mgr-8', name: 'Arthur Penhaligon', role: 'manager', age: 61, rating: 60, salaryWeekly: 0.015, personality: 'Cost Cutter', avatar: '👞' },
+    { id: 'mgr-1', name: 'Jose Cardono', role: 'manager', age: 58, rating: 88, salaryWeekly: 0.12, personality: 'Tactician', avatar: '👔', minLeagueTier: 1, maxLeagueTier: 2 },
+    { id: 'mgr-2', name: 'Pep Santis', role: 'manager', age: 51, rating: 94, salaryWeekly: 0.18, personality: 'Risk Taker', avatar: '🕶️', minLeagueTier: 1, maxLeagueTier: 1 },
+    { id: 'mgr-3', name: 'Sean Dikes', role: 'manager', age: 52, rating: 74, salaryWeekly: 0.05, personality: 'Cost Cutter', avatar: '🦁', minLeagueTier: 2, maxLeagueTier: 4 },
+    { id: 'mgr-4', name: 'Emma Hayes-Jones', role: 'manager', age: 46, rating: 85, salaryWeekly: 0.09, personality: 'Youth Developer', avatar: '👩‍💼', minLeagueTier: 1, maxLeagueTier: 2 },
+    { id: 'mgr-5', name: 'Roy Hodges', role: 'manager', age: 74, rating: 71, salaryWeekly: 0.03, personality: 'Conservative', avatar: '👴', minLeagueTier: 3, maxLeagueTier: 5 },
+    { id: 'mgr-6', name: 'Danny McKenn', role: 'manager', age: 39, rating: 78, salaryWeekly: 0.06, personality: 'Youth Developer', avatar: '🏃', minLeagueTier: 2, maxLeagueTier: 3 },
+    { id: 'mgr-7', name: 'Gavin O\'Reilly', role: 'manager', age: 44, rating: 67, salaryWeekly: 0.02, personality: 'Risk Taker', avatar: '🧢', minLeagueTier: 4, maxLeagueTier: 6 },
+    { id: 'mgr-8', name: 'Arthur Penhaligon', role: 'manager', age: 61, rating: 60, salaryWeekly: 0.015, personality: 'Cost Cutter', avatar: '👞', minLeagueTier: 5, maxLeagueTier: 7 },
 
     // CEOS
-    { id: 'ceo-1', name: 'Richard Green', role: 'ceo', age: 55, rating: 92, salaryWeekly: 0.08, personality: 'Commercial Genius', avatar: '📈' },
-    { id: 'ceo-2', name: 'Victoria Sterling', role: 'ceo', age: 49, rating: 84, salaryWeekly: 0.06, personality: 'Aggressive Builder', avatar: '💄' },
-    { id: 'ceo-3', name: 'Alan Price', role: 'ceo', age: 62, rating: 72, salaryWeekly: 0.03, personality: 'Cost Cutter', avatar: '💼' },
-    { id: 'ceo-4', name: 'Marcus Vander', role: 'ceo', age: 41, rating: 79, salaryWeekly: 0.045, personality: 'Risk Taker', avatar: '📱' },
-    { id: 'ceo-5', name: 'Sarah Jenkins', role: 'ceo', age: 38, rating: 68, salaryWeekly: 0.025, personality: 'Conservative', avatar: '💻' },
+    { id: 'ceo-1', name: 'Richard Green', role: 'ceo', age: 55, rating: 92, salaryWeekly: 0.08, personality: 'Commercial Genius', avatar: '📈', minLeagueTier: 1, maxLeagueTier: 2 },
+    { id: 'ceo-2', name: 'Victoria Sterling', role: 'ceo', age: 49, rating: 84, salaryWeekly: 0.06, personality: 'Aggressive Builder', avatar: '💄', minLeagueTier: 1, maxLeagueTier: 2 },
+    { id: 'ceo-3', name: 'Alan Price', role: 'ceo', age: 62, rating: 72, salaryWeekly: 0.03, personality: 'Cost Cutter', avatar: '💼', minLeagueTier: 3, maxLeagueTier: 5 },
+    { id: 'ceo-4', name: 'Marcus Vander', role: 'ceo', age: 41, rating: 79, salaryWeekly: 0.045, personality: 'Risk Taker', avatar: '📱', minLeagueTier: 2, maxLeagueTier: 4 },
+    { id: 'ceo-5', name: 'Sarah Jenkins', role: 'ceo', age: 38, rating: 68, salaryWeekly: 0.025, personality: 'Conservative', avatar: '💻', minLeagueTier: 4, maxLeagueTier: 6 },
 
     // SPORTING DIRECTORS
-    { id: 'sd-1', name: 'Ralf Ragnor', role: 'sporting_director', age: 63, rating: 91, salaryWeekly: 0.07, personality: 'Youth Developer', avatar: '👓' },
-    { id: 'sd-2', name: 'Monchi De Silla', role: 'sporting_director', age: 53, rating: 86, salaryWeekly: 0.05, personality: 'Transfer Specialist', avatar: '🔍' },
-    { id: 'sd-3', name: 'Steve Walshy', role: 'sporting_director', age: 59, rating: 76, salaryWeekly: 0.03, personality: 'Underdog Scout', avatar: '🗺️' },
-    { id: 'sd-4', name: 'Laura Martinez', role: 'sporting_director', age: 45, rating: 81, salaryWeekly: 0.04, personality: 'Commercial Genius', avatar: '📊' },
-    { id: 'sd-5', name: 'Tobias Lind', role: 'sporting_director', age: 35, rating: 70, salaryWeekly: 0.02, personality: 'Cost Cutter', avatar: '🧪' },
+    { id: 'sd-1', name: 'Ralf Ragnor', role: 'sporting_director', age: 63, rating: 91, salaryWeekly: 0.07, personality: 'Youth Developer', avatar: '👓', minLeagueTier: 1, maxLeagueTier: 2 },
+    { id: 'sd-2', name: 'Monchi De Silla', role: 'sporting_director', age: 53, rating: 86, salaryWeekly: 0.05, personality: 'Transfer Specialist', avatar: '🔍', minLeagueTier: 1, maxLeagueTier: 2 },
+    { id: 'sd-3', name: 'Steve Walshy', role: 'sporting_director', age: 59, rating: 76, salaryWeekly: 0.03, personality: 'Underdog Scout', avatar: '🗺️', minLeagueTier: 2, maxLeagueTier: 4 },
+    { id: 'sd-4', name: 'Laura Martinez', role: 'sporting_director', age: 45, rating: 81, salaryWeekly: 0.04, personality: 'Commercial Genius', avatar: '📊', minLeagueTier: 1, maxLeagueTier: 3 },
+    { id: 'sd-5', name: 'Tobias Lind', role: 'sporting_director', age: 35, rating: 70, salaryWeekly: 0.02, personality: 'Cost Cutter', avatar: '🧪', minLeagueTier: 4, maxLeagueTier: 6 },
   ];
 
   const leagues: League[] = [

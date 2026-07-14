@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { GameDatabase, Club, League, Staff } from '../types/game';
+import { useToast } from './Toast';
 import { Download, Upload, CheckCircle2, AlertTriangle, Plus, Trash2, Edit2, FileJson, Play } from 'lucide-react';
 
 interface ModdingHubProps {
@@ -24,6 +25,7 @@ export default function ModdingHub({
   const [activeTab, setActiveTab] = useState<'packs' | 'create' | 'validate'>('packs');
   const [jsonText, setJsonText] = useState('');
   const [validationReport, setValidationReport] = useState<{ success: boolean; messages: string[] } | null>(null);
+  const { show: notify } = useToast();
   
   // Custom creator states
   const [packName, setPackName] = useState('My Custom Football Universe');
@@ -145,12 +147,12 @@ export default function ModdingHub({
       });
 
       onImportDatabase(importedDb);
-      alert('🎉 Custom Football Data Pack imported successfully!');
+      notify('Custom Football Data Pack imported successfully!', 'success');
       setJsonText('');
       setValidationReport(null);
       setActiveTab('packs');
     } else {
-      alert('❌ Cannot import database. Please resolve verification reports first.');
+      notify('Cannot import database. Please resolve verification reports first.', 'error');
     }
   };
 

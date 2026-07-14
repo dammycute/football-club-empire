@@ -32,6 +32,8 @@ export interface Staff {
   salaryWeekly: number; // in £
   personality: string; // e.g. 'Risk Taker', 'Cost Cutter', 'Commercial Genius', 'Youth Developer', 'Tactician'
   avatar: string; // Tailwind emoji-based avatar description or character
+  minLeagueTier?: number; // lowest league tier this staff is suitable for (default 1)
+  maxLeagueTier?: number; // highest league tier this staff is suitable for (default 7)
 }
 
 export interface BoardObjective {

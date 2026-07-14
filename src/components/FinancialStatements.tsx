@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
-import { Club, League } from '../types/game';
+import React, { useState, useMemo } from 'react';
+import { Club, League, Staff } from '../types/game';
 import { tickClubWeeklyFinances } from '../utils/simEngine';
+import { useToast } from './Toast';
 import { ArrowDownRight, ArrowUpRight, Percent, Landmark, HelpCircle, RefreshCw } from 'lucide-react';
 
 interface FinancialStatementsProps {
   club: Club;
   league: League;
+  availableStaff: Staff[];
   onTakeLoan: (amount: number) => void;
   onPayLoan: (amount: number) => void;
 }
@@ -13,28 +15,31 @@ interface FinancialStatementsProps {
 export default function FinancialStatements({
   club,
   league,
+  availableStaff,
   onTakeLoan,
   onPayLoan
 }: FinancialStatementsProps) {
   const [loanInput, setLoanInput] = useState(10); // £10M by default
+  const { show: notify } = useToast();
 
-  // Get estimated weekly finances (assuming playing a home match for complete view)
-  const homeStatement = tickClubWeeklyFinances(club, league, true, null);
-  const awayStatement = tickClubWeeklyFinances(club, league, false, null);
+  const ceo = useMemo(() => availableStaff.find((s) => s.id === club.ceoId) || null, [availableStaff, club.ceoId]);
+
+  // Get estimated weekly finances using the actual hired CEO (if any)
+  const homeStatement = useMemo(() => tickClubWeeklyFinances(club, league, true, ceo), [club, league, ceo]);
+  const awayStatement = useMemo(() => tickClubWeeklyFinances(club, league, false, ceo), [club, league, ceo]);
 
   const formatMoney = (val: number) => {
     return `£${val.toFixed(3)}M`;
   };
 
-  const calculateAnnualFFP = () => {
+  const ffp = useMemo(() => {
     // 38 match weeks (19 home, 19 away)
     const annualRev = (homeStatement.revenue * 19) + (awayStatement.revenue * 19);
     const annualExp = (homeStatement.expenses * 19) + (awayStatement.expenses * 19);
     const profit = annualRev - annualExp;
     return { rev: annualRev, exp: annualExp, profit };
-  };
+  }, [homeStatement, awayStatement]);
 
-  const ffp = calculateAnnualFFP();
   const ffpPassed = ffp.profit > -15.0; // Allowed losses of up to £15M under PSR/FFP rules!
 
   return (
@@ -172,7 +177,7 @@ export default function FinancialStatements({
               onClick={() => {
                 if (loanInput <= 0) return;
                 onTakeLoan(loanInput);
-                alert(`🏦 Loan approved! Added £${loanInput}M to club cash. Outstanding debt increases.`);
+                notify(`Loan approved! Added £${loanInput}M to club cash.`, 'success');
               }}
               className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl transition-all shadow-md shadow-indigo-600/10"
             >
@@ -182,11 +187,11 @@ export default function FinancialStatements({
               onClick={() => {
                 if (loanInput <= 0) return;
                 if (club.cash < loanInput) {
-                  alert("❌ Club does not have enough cash.");
+                  notify('Club does not have enough cash.', 'error');
                   return;
                 }
                 onPayLoan(loanInput);
-                alert(`🏦 Loan paid off! Subtracted £${loanInput}M. Weekly interest expense will drop.`);
+                notify(`Loan paid off! Weekly interest expense will drop.`, 'success');
               }}
               disabled={club.cash < loanInput}
               className={`flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition-all ${

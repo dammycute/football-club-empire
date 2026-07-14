@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Club } from '../types/game';
+import { useToast } from './Toast';
 import { Building2, Landmark, Trophy, Users, Shield, ArrowUpCircle, AlertCircle, Coins } from 'lucide-react';
 
 interface ClubProfileProps {
@@ -17,6 +18,7 @@ export default function ClubProfile({
   onPayoutDividend,
   playerWealth
 }: ClubProfileProps) {
+  const { show: notify } = useToast();
   const [ticketPrice, setTicketPrice] = useState(club.ticketPrice);
   const [seasonTicketPrice, setSeasonTicketPrice] = useState(club.seasonTicketPrice);
   const [dividendAmount, setDividendAmount] = useState(Math.floor(club.cash * 0.1));
@@ -39,13 +41,13 @@ export default function ClubProfile({
 
   const handleSavePrices = () => {
     onUpdateTicketPrices(ticketPrice, seasonTicketPrice);
-    alert('💰 Matchday and Season ticket prices updated successfully!');
+    notify('Matchday and Season ticket prices updated successfully!', 'success');
   };
 
   const handleDividendClick = () => {
     if (dividendAmount <= 0) return;
     if (dividendAmount > club.cash) {
-      alert('❌ Club does not have enough cash reserves.');
+      notify('Club does not have enough cash reserves.', 'error');
       return;
     }
     onPayoutDividend(dividendAmount);

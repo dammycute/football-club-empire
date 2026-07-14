@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { InboxMessage } from '../types/game';
+import { useToast } from './Toast';
 import { Mail, MailOpen, Trash2, Calendar, CheckSquare, XSquare, MessageSquare } from 'lucide-react';
 
 interface InboxPanelProps {
@@ -16,6 +17,7 @@ export default function InboxPanel({
   onRejectTakeover
 }: InboxPanelProps) {
   const [selectedMsgId, setSelectedMsgId] = useState<string | null>(null);
+  const { show: notify } = useToast();
 
   const selectedMessage = messages.find((m) => m.id === selectedMsgId);
 
@@ -121,7 +123,7 @@ export default function InboxPanel({
                       if (window.confirm(`Are you absolutely sure you want to sell the club for £${selectedMessage.actionData.amount}M? This action is irreversible.`)) {
                         onAcceptTakeover(selectedMessage.actionData.offerId, selectedMessage.actionData.amount);
                         setSelectedMsgId(null);
-                        alert('🎉 Club sold! The net proceeds have been added to your personal career wealth.');
+                        notify('Club sold! The net proceeds have been added to your personal career wealth.', 'success');
                       }
                     }}
                     className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg transition-all flex items-center justify-center gap-1 shadow-lg shadow-emerald-600/10"
@@ -133,7 +135,7 @@ export default function InboxPanel({
                     onClick={() => {
                       onRejectTakeover(selectedMessage.actionData.offerId);
                       setSelectedMsgId(null);
-                      alert('❌ Takeover offer rejected. Bidders have withdrawn from negotiations.');
+                      notify('Takeover offer rejected. Bidders have withdrawn from negotiations.', 'error');
                     }}
                     className="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-lg transition-all flex items-center justify-center gap-1"
                   >

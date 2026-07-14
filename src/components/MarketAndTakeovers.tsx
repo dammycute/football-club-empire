@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Club, League, PlayerProfile } from '../types/game';
+import { useToast } from './Toast';
 import { 
   Landmark, 
   Users, 
@@ -32,6 +33,7 @@ export default function MarketAndTakeovers({
   activeClubId,
   onAcquireClub
 }: MarketAndTakeoversProps) {
+  const { show: notify } = useToast();
   // Local filter states
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLeagueId, setSelectedLeagueId] = useState<string>('all');
@@ -391,7 +393,7 @@ export default function MarketAndTakeovers({
                     <button
                       onClick={() => {
                         if (!isAffordable) {
-                          alert(`❌ Insufficient wealth. Asking price is £${askingPrice}M, you only have £${player.personalWealth}M.`);
+                          notify(`Insufficient wealth. Asking price is £${askingPrice}M, you only have £${player.personalWealth}M.`, 'error');
                           return;
                         }
                         

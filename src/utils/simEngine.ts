@@ -118,7 +118,7 @@ export function calculateValuation(club: Club, leaguePrestige: number): number {
   const squadVal = club.squadQuality * 1.8;
 
   // Performance revenue base: revenue last year * league multiplier
-  const revBase = club.revenueLastYear * (0.8 + (leaguePrestige / 100));
+  const revBase = (club.revenueLastYear ?? 0) * (0.8 + (leaguePrestige / 100));
 
   // Combine and subtract debt, add cash
   let val = stadiumVal + facilitiesVal + brandVal + squadVal + revBase + club.cash - club.debt;
@@ -250,9 +250,14 @@ export function simulateWeek(state: GameState): GameState {
   const db = state.databases[state.currentDatabaseId];
   if (!db) return state;
 
-  // Create deep clones
-  const clubs = [...db.clubs];
-  const leagues = [...db.leagues];
+  // Deep clone to prevent mutating original state (clubs, leagues, matches, standings, history)
+  const clubs = db.clubs.map(c => ({ ...c, history: [...c.history] }));
+  const leagues: League[] = db.leagues.map(l => ({
+    ...l,
+    standings: l.standings.map(s => ({ ...s })),
+    fixtures: l.fixtures.map(f => ({ ...f, matchEvents: f.matchEvents ? [...f.matchEvents] : undefined })),
+    history: l.history.map(h => ({ ...h }))
+  }));
   const staff = [...db.availableStaff];
   let playerWealth = state.player.personalWealth;
   let playerRep = state.player.reputation;
@@ -746,8 +751,8 @@ export function simulateWeek(state: GameState): GameState {
         year: currentYear,
         leaguePosition: league.standings.findIndex((s) => s.clubId === club.id) + 1,
         leagueName: league.name,
-        revenue: club.revenueLastYear, // approximate placeholder
-        profit: club.profitLastYear,
+        revenue: club.revenueLastYear ?? 0,
+        profit: club.profitLastYear ?? 0,
         valuation: club.valuation
       };
       club.history.unshift(historyEntry);
