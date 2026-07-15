@@ -114,14 +114,15 @@ export default function InboxPanel({
                   Proposed Acquisition Offer Console
                 </div>
                 <p className="text-[10px] text-slate-400">
-                  Accepting this offer will transfer ownership of your club to {selectedMessage.sender}. All outstanding debts are paid off automatically, and the net surplus of <span className="text-emerald-400 font-bold">£{selectedMessage.actionData.amount}M</span> will be deposited into your personal career net worth.
+                  Accepting this offer will transfer ownership of your club to {selectedMessage.sender}. All outstanding debts are paid off automatically, and the net surplus of <span className="text-emerald-400 font-bold">£{String(selectedMessage.actionData.amount)}M</span> will be deposited into your personal career net worth.
                 </p>
 
                 <div className="flex gap-3 mt-1.5">
                   <button
                     onClick={() => {
-                      if (window.confirm(`Are you absolutely sure you want to sell the club for £${selectedMessage.actionData.amount}M? This action is irreversible.`)) {
-                        onAcceptTakeover(selectedMessage.actionData.offerId, selectedMessage.actionData.amount);
+                      const actionData = selectedMessage.actionData as { offerId: string; amount: number };
+                      if (window.confirm(`Are you absolutely sure you want to sell the club for £${actionData.amount}M? This action is irreversible.`)) {
+                        onAcceptTakeover(actionData.offerId, actionData.amount);
                         setSelectedMsgId(null);
                         notify('Club sold! The net proceeds have been added to your personal career wealth.', 'success');
                       }
@@ -129,11 +130,11 @@ export default function InboxPanel({
                     className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg transition-all flex items-center justify-center gap-1 shadow-lg shadow-emerald-600/10"
                   >
                     <CheckSquare className="w-3.5 h-3.5" />
-                    Accept Offer (£{selectedMessage.actionData.amount}M)
+                    Accept Offer (£{String(selectedMessage.actionData.amount)}M)
                   </button>
                   <button
                     onClick={() => {
-                      onRejectTakeover(selectedMessage.actionData.offerId);
+                      onRejectTakeover((selectedMessage.actionData as { offerId: string }).offerId);
                       setSelectedMsgId(null);
                       notify('Takeover offer rejected. Bidders have withdrawn from negotiations.', 'error');
                     }}

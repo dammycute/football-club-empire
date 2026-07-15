@@ -35,6 +35,7 @@ function createInitialState(): GameState {
     },
     activeClubId: null,
     marketListings: [],
+    playerTransferListings: [],
     takeoverOffers: [],
     inbox: [
       {

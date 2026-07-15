@@ -1,4 +1,7 @@
-import { GameState, Club, League, Match, StandingEntry, InboxMessage, EventLog, Staff, TakeoverOffer, ClubMarketListing } from '../types/game';
+import { GameState, Club, League, Match, StandingEntry, InboxMessage, EventLog, Staff, TakeoverOffer, ClubMarketListing, Player } from '../types/game';
+import { deriveSquadQuality, getEffectiveAbility, autoPickXI, applyMatchFatigue, checkMatchInjury, updatePlayerForm, tickInjuryRecovery, applyRestRecovery, isTransferWindowOpen as _isTransferWindowOpen } from './playerUtils';
+
+export const isTransferWindowOpen = _isTransferWindowOpen;
 
 // Helper to generate a random number within range
 const randomRange = (min: number, max: number) => Math.random() * (max - min) + min;
@@ -35,43 +38,126 @@ const MISS_COMMENTARIES = [
   "Smashes it high over the crossbar into the stands."
 ];
 
+function computeFormModifier(recentResults: ('win' | 'draw' | 'loss')[]): number {
+  if (recentResults.length === 0) return 0;
+  const score = recentResults.reduce((sum, r) => sum + (r === 'win' ? 1 : r === 'draw' ? 0 : -1), 0);
+  return (score / recentResults.length) * 2.5; // range roughly -2.5 to +2.5
+}
+
+function getRecentResultsForClub(clubId: string, leagues: League[], currentWeek: number): ('win' | 'draw' | 'loss')[] {
+  const allMatches: Match[] = [];
+  leagues.forEach((l) => {
+    l.fixtures.forEach((f) => {
+      if (f.simulated && f.homeScore !== undefined && f.awayScore !== undefined && f.week < currentWeek) {
+        if (f.homeClubId === clubId || f.awayClubId === clubId) {
+          allMatches.push(f);
+        }
+      }
+    });
+  });
+  allMatches.sort((a, b) => b.week - a.week);
+  const last5 = allMatches.slice(0, 5);
+  return last5.map((m) => {
+    if (m.homeClubId === clubId) {
+      return m.homeScore! > m.awayScore! ? 'win' : m.homeScore! === m.awayScore! ? 'draw' : 'loss';
+    } else {
+      return m.awayScore! > m.homeScore! ? 'win' : m.awayScore! === m.homeScore! ? 'draw' : 'loss';
+    }
+  });
+}
+
 // Simulate a match between home and away team
-export function simulateMatch(home: Club, away: Club, homeManager: Staff | null, awayManager: Staff | null, week: number): { homeScore: number; awayScore: number; events: string[] } {
-  // Base strength calculations
-  const homeSquad = home.squadQuality;
-  const awaySquad = away.squadQuality;
+export function simulateMatch(
+  home: Club,
+  away: Club,
+  homeManager: Staff | null,
+  awayManager: Staff | null,
+  week: number,
+  homePlayers?: Player[],
+  awayPlayers?: Player[],
+  leagues?: League[],
+  isDerby?: boolean
+): { homeScore: number; awayScore: number; events: string[] } {
+  // Positional strength calculations (if players provided)
+  let homeAttackRating: number;
+  let homeDefenseRating: number;
+  let awayAttackRating: number;
+  let awayDefenseRating: number;
+
+  if (homePlayers && awayPlayers) {
+    const homeXI = autoPickXI(homePlayers);
+    const awayXI = autoPickXI(awayPlayers);
+    const homeFwdMid = homeXI.filter((p) => p.position === 'FWD' || p.position === 'MID');
+    const homeDefGk = homeXI.filter((p) => p.position === 'DEF' || p.position === 'GK');
+    const awayFwdMid = awayXI.filter((p) => p.position === 'FWD' || p.position === 'MID');
+    const awayDefGk = awayXI.filter((p) => p.position === 'DEF' || p.position === 'GK');
+
+    homeAttackRating = homeFwdMid.length > 0
+      ? homeFwdMid.reduce((s, p) => s + getEffectiveAbility(p), 0) / homeFwdMid.length
+      : home.squadQuality;
+    homeDefenseRating = homeDefGk.length > 0
+      ? homeDefGk.reduce((s, p) => s + getEffectiveAbility(p), 0) / homeDefGk.length
+      : home.squadQuality;
+    awayAttackRating = awayFwdMid.length > 0
+      ? awayFwdMid.reduce((s, p) => s + getEffectiveAbility(p), 0) / awayFwdMid.length
+      : away.squadQuality;
+    awayDefenseRating = awayDefGk.length > 0
+      ? awayDefGk.reduce((s, p) => s + getEffectiveAbility(p), 0) / awayDefGk.length
+      : away.squadQuality;
+  } else {
+    // Fallback: derive from squadQuality
+    homeAttackRating = home.squadQuality;
+    homeDefenseRating = home.squadQuality;
+    awayAttackRating = away.squadQuality;
+    awayDefenseRating = away.squadQuality;
+  }
 
   const homeMgrRating = homeManager ? homeManager.rating : 50;
   const awayMgrRating = awayManager ? awayManager.rating : 50;
 
+  // Mentality modifiers
+  const mentalityMod = (m: Club['mentality']): { atk: number; def: number } => {
+    if (m === 'attacking') return { atk: 1.15, def: 0.90 };
+    if (m === 'defensive') return { atk: 0.90, def: 1.15 };
+    return { atk: 1.0, def: 1.0 };
+  };
+  // Derby intensity boost
+  const derbyBoost = isDerby ? 3 : 0;
+
+  const homeMent = mentalityMod(home.mentality);
+  const awayMent = mentalityMod(away.mentality);
+
+  // Form modifier from recent results
+  const homeResults = leagues ? getRecentResultsForClub(home.id, leagues, week) : [];
+  const awayResults = leagues ? getRecentResultsForClub(away.id, leagues, week) : [];
+  const homeFormMod = computeFormModifier(homeResults);
+  const awayFormMod = computeFormModifier(awayResults);
+
   // Home advantage boost
   const homeAdvantage = 4.5;
 
-  // Total rating calculation
-  const homeRating = (homeSquad * 0.75) + (homeMgrRating * 0.20) + (home.trainingFacilitiesLevel * 1) + homeAdvantage;
-  const awayRating = (awaySquad * 0.75) + (awayMgrRating * 0.20) + (away.trainingFacilitiesLevel * 1);
+  const homeRating = (homeAttackRating * homeMent.atk * 0.40) + (homeDefenseRating * homeMent.def * 0.35) + (homeMgrRating * 0.20) + (home.trainingFacilitiesLevel * 1) + homeAdvantage + homeFormMod + derbyBoost;
+  const awayRating = (awayAttackRating * awayMent.atk * 0.40) + (awayDefenseRating * awayMent.def * 0.35) + (awayMgrRating * 0.20) + (away.trainingFacilitiesLevel * 1) + awayFormMod + derbyBoost;
 
   // Ratio of strength
   const total = homeRating + awayRating;
-  const homeProb = homeRating / total; // e.g. 0.55 vs 0.45
+  const homeProb = homeRating / total;
 
-  // Expected goals (usually 1 to 4)
-  const baseMatchIntensity = randomRange(1.8, 3.8); // Total expected goals in the match
-  
-  // Calculate raw goals using poisson-like distribution
   let homeScore = 0;
   let awayScore = 0;
   const events: string[] = [];
 
-  // Simulate up to 6 key attacks in the game
+  // Simulate key attacks based on strength ratio
   const attacksCount = randomInt(4, 7);
   for (let i = 0; i < attacksCount; i++) {
     const isHomeAttack = Math.random() < homeProb;
     const time = randomInt(Math.max(1, i * 15), Math.min(90, (i + 1) * 15));
-    
-    // Prob of scoring a key attack is based on squad quality / 100
-    const scoreProb = isHomeAttack ? (homeSquad / 150) + 0.15 : (awaySquad / 150) + 0.15;
-    
+    const attackingStrength = isHomeAttack ? homeAttackRating : awayAttackRating;
+    const defendingStrength = isHomeAttack ? awayDefenseRating : homeDefenseRating;
+
+    // Score probability based on attack vs defense quality
+    const scoreProb = (attackingStrength / (attackingStrength + defendingStrength)) * 0.45 + 0.15;
+
     if (Math.random() < scoreProb) {
       if (isHomeAttack) {
         homeScore++;
@@ -96,8 +182,14 @@ export function simulateMatch(home: Club, away: Club, homeManager: Staff | null,
     events.push("45' Half-Time: Tactical battle with few clear-cut chances.");
     events.push("90' Full-Time: A closely contested tactical stalemate.");
   } else {
-    events.unshift("0' Kick-off! The stadium is packed and roaring with excitement.");
-    events.push(`90' Full-Time. The final whistle blows: ${home.name} ${homeScore} - ${awayScore} ${away.name}`);
+    const kickoffLine = isDerby
+      ? "0' Kick-off! The stadium is electric — this is a DERBY match! The tension is palpable."
+      : "0' Kick-off! The stadium is packed and roaring with excitement.";
+    events.unshift(kickoffLine);
+    const derbyFullTime = isDerby
+      ? `90' Full-Time. The DERBY is over! ${home.name} ${homeScore} - ${awayScore} ${away.name}`
+      : `90' Full-Time. The final whistle blows: ${home.name} ${homeScore} - ${awayScore} ${away.name}`;
+    events.push(derbyFullTime);
   }
 
   return { homeScore, awayScore, events };
@@ -213,32 +305,67 @@ export function tickClubWeeklyFinances(club: Club, league: League, isHomeMatch: 
   };
 }
 
-// Generate double round-robin fixtures for 4 teams
+// Compute season length in weeks for a given number of teams (double round-robin)
+export function getSeasonLengthWeeks(teamsCount: number): number {
+  if (teamsCount < 2) return 0;
+  // For N teams: odd -> 2*N weeks, even -> 2*(N-1) weeks
+  return teamsCount % 2 === 0 ? 2 * (teamsCount - 1) : 2 * teamsCount;
+}
+
+// Generate double round-robin fixtures using the circle method (works for any N >= 2)
 export function generateFixturesForLeague(clubIds: string[]): Match[] {
-  if (clubIds.length !== 4) return [];
-  const ids = [...clubIds];
-  
-  // Double round robin (6 weeks)
-  const f1: Match = { week: 1, homeClubId: ids[0], awayClubId: ids[1], simulated: false };
-  const f2: Match = { week: 1, homeClubId: ids[2], awayClubId: ids[3], simulated: false };
+  if (clubIds.length < 2) return [];
 
-  const f3: Match = { week: 2, homeClubId: ids[1], awayClubId: ids[2], simulated: false };
-  const f4: Match = { week: 2, homeClubId: ids[3], awayClubId: ids[0], simulated: false };
+  const n = clubIds.length;
+  const isOdd = n % 2 !== 0;
+  const total = isOdd ? n + 1 : n; // add dummy for odd counts (bye)
 
-  const f5: Match = { week: 3, homeClubId: ids[0], awayClubId: ids[2], simulated: false };
-  const f6: Match = { week: 3, homeClubId: ids[1], awayClubId: ids[3], simulated: false };
+  // Build list of indices; -1 represents a bye
+  const indices: number[] = [];
+  for (let i = 0; i < n; i++) indices.push(i);
+  if (isOdd) indices.push(-1);
 
-  // Reversed fixtures
-  const f7: Match = { week: 4, homeClubId: ids[1], awayClubId: ids[0], simulated: false };
-  const f8: Match = { week: 4, homeClubId: ids[3], awayClubId: ids[2], simulated: false };
+  const fixtures: Match[] = [];
+  // Each round of single round-robin
+  const rounds = total - 1;
 
-  const f9: Match = { week: 5, homeClubId: ids[2], awayClubId: ids[1], simulated: false };
-  const f10: Match = { week: 5, homeClubId: ids[0], awayClubId: ids[3], simulated: false };
+  for (let round = 0; round < rounds; round++) {
+    for (let i = 0; i < total / 2; i++) {
+      const home = indices[i];
+      const away = indices[total - 1 - i];
+      if (home === -1 || away === -1) continue; // bye
+      // First leg: lower index home on even rounds
+      fixtures.push({
+        week: round + 1,
+        homeClubId: clubIds[round % 2 === 0 ? home : away],
+        awayClubId: clubIds[round % 2 === 0 ? away : home],
+        simulated: false,
+      });
+    }
+    // Rotate: keep index[0] fixed, rotate the rest clockwise
+    const last = indices.pop()!;
+    indices.splice(1, 0, last);
+  }
 
-  const f11: Match = { week: 6, homeClubId: ids[2], awayClubId: ids[0], simulated: false };
-  const f12: Match = { week: 6, homeClubId: ids[3], awayClubId: ids[1], simulated: false };
+  // Second leg: reverse home/away
+  const leg2Offset = rounds;
+  for (let round = 0; round < rounds; round++) {
+    for (let i = 0; i < total / 2; i++) {
+      const home = indices[i];
+      const away = indices[total - 1 - i];
+      if (home === -1 || away === -1) continue;
+      fixtures.push({
+        week: leg2Offset + round + 1,
+        homeClubId: clubIds[round % 2 === 0 ? away : home],
+        awayClubId: clubIds[round % 2 === 0 ? home : away],
+        simulated: false,
+      });
+    }
+    const last = indices.pop()!;
+    indices.splice(1, 0, last);
+  }
 
-  return [f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12];
+  return fixtures;
 }
 
 // Core simulation week tick
@@ -251,7 +378,8 @@ export function simulateWeek(state: GameState): GameState {
   if (!db) return state;
 
   // Deep clone to prevent mutating original state (clubs, leagues, matches, standings, history)
-  const clubs = db.clubs.map(c => ({ ...c, history: [...c.history] }));
+  const allPlayers: Player[] = db.players.map(p => ({ ...p }));
+  const clubs = db.clubs.map(c => ({ ...c, history: [...c.history], squad: [...c.squad] }));
   const leagues: League[] = db.leagues.map(l => ({
     ...l,
     standings: l.standings.map(s => ({ ...s })),
@@ -259,6 +387,14 @@ export function simulateWeek(state: GameState): GameState {
     history: l.history.map(h => ({ ...h }))
   }));
   const staff = [...db.availableStaff];
+
+  // Derive squadQuality from each club's players
+  clubs.forEach((club) => {
+    const clubPlayers = allPlayers.filter((p) => p.clubId === club.id);
+    if (clubPlayers.length > 0) {
+      club.squadQuality = deriveSquadQuality(clubPlayers);
+    }
+  });
   let playerWealth = state.player.personalWealth;
   let playerRep = state.player.reputation;
   let inbox = [...state.inbox];
@@ -267,6 +403,9 @@ export function simulateWeek(state: GameState): GameState {
 
   // Week Event Logs
   const weeklyNews: EventLog[] = [];
+
+  // Track which clubs had a match this week (for fatigue/recovery)
+  const clubsWithMatchThisWeek = new Set<string>();
 
   // 1. Simulate Matchday for each league
   leagues.forEach((league) => {
@@ -277,23 +416,59 @@ export function simulateWeek(state: GameState): GameState {
       const awayClub = clubs.find((c) => c.id === match.awayClubId);
 
       if (homeClub && awayClub) {
+        clubsWithMatchThisWeek.add(homeClub.id);
+        clubsWithMatchThisWeek.add(awayClub.id);
+
+        const isDerby = league.derbies?.some(
+          ([a, b]) => (a === homeClub.id && b === awayClub.id) || (a === awayClub.id && b === homeClub.id)
+        ) ?? false;
+
         const homeMgr = staff.find((s) => s.id === homeClub.managerId) || null;
         const awayMgr = staff.find((s) => s.id === awayClub.managerId) || null;
 
-        const result = simulateMatch(homeClub, awayClub, homeMgr, awayMgr, currentWeek);
+        const homePlayers = allPlayers.filter((p) => p.clubId === homeClub.id);
+        const awayPlayers = allPlayers.filter((p) => p.clubId === awayClub.id);
+
+        const result = simulateMatch(homeClub, awayClub, homeMgr, awayMgr, currentWeek, homePlayers, awayPlayers, leagues, isDerby);
         match.homeScore = result.homeScore;
         match.awayScore = result.awayScore;
         match.simulated = true;
         match.matchEvents = result.events;
 
+        // Determine result for form update
+        const homeResult: 'win' | 'draw' | 'loss' = result.homeScore > result.awayScore ? 'win' : result.homeScore === result.awayScore ? 'draw' : 'loss';
+        const awayResult: 'win' | 'draw' | 'loss' = homeResult === 'win' ? 'loss' : homeResult === 'loss' ? 'win' : 'draw';
+
+        // Apply fatigue, injuries, form update to players
+        const updatePlayerClub = (clubId: string, matchResult: 'win' | 'draw' | 'loss') => {
+          const xi = autoPickXI(allPlayers.filter((p) => p.clubId === clubId));
+          xi.forEach((p) => {
+            const idx = allPlayers.findIndex((ap) => ap.id === p.id);
+            if (idx !== -1) {
+              let updated = applyMatchFatigue(allPlayers[idx]);
+              updated = checkMatchInjury(updated);
+              updated = updatePlayerForm(updated, matchResult);
+              allPlayers[idx] = updated;
+            }
+          });
+        };
+
+        updatePlayerClub(homeClub.id, homeResult);
+        updatePlayerClub(awayClub.id, awayResult);
+
         // Log to News if it involves the player's club
         if (homeClub.id === state.activeClubId || awayClub.id === state.activeClubId) {
+          const matchTitle = isDerby
+            ? `DERBY DAY: ${homeClub.name} ${result.homeScore} - ${result.awayScore} ${awayClub.name}`
+            : `Match Result: ${homeClub.name} ${result.homeScore} - ${result.awayScore} ${awayClub.name}`;
           weeklyNews.push({
             id: makeId(),
             week: currentWeek,
             year: currentYear,
-            title: `Match Result: ${homeClub.name} ${result.homeScore} - ${result.awayScore} ${awayClub.name}`,
-            description: `A thrilling clash on matchday ${currentWeek}! Check detail log for key match moments.`,
+            title: matchTitle,
+            description: isDerby
+              ? `Intense derby atmosphere delivered on matchday ${currentWeek}!`
+              : `A thrilling clash on matchday ${currentWeek}! Check detail log for key match moments.`,
             type: 'sporting'
           });
         }
@@ -347,6 +522,58 @@ export function simulateWeek(state: GameState): GameState {
     });
 
     league.standings = standings;
+
+    // Season-arc news: title race
+    const seasonHalf = Math.floor(getSeasonLengthWeeks(league.teamsCount) / 2);
+    if (currentWeek >= seasonHalf && standings.length >= 2) {
+      const top = standings[0];
+      const second = standings[1];
+      if (top && second && (top.points - second.points) <= 3) {
+        const topClub = clubs.find((c) => c.id === top.clubId);
+        const secondClub = clubs.find((c) => c.id === second.clubId);
+        if (topClub && secondClub && (topClub.id === state.activeClubId || secondClub.id === state.activeClubId)) {
+          weeklyNews.push({
+            id: makeId(),
+            week: currentWeek,
+            year: currentYear,
+            title: `Title Race Heats Up!`,
+            description: `${topClub.name} leads ${secondClub.name} by just ${top.points - second.points} point(s) with the season past the halfway mark. Every match counts!`,
+            type: 'sporting'
+          });
+        }
+      }
+
+      // Relegation six-pointer: two bottom-4 clubs playing each other this week
+      const bottomIds = standings.slice(-4).map((s) => s.clubId);
+      weeklyMatches.forEach((m) => {
+        if (bottomIds.includes(m.homeClubId) && bottomIds.includes(m.awayClubId) && m.simulated) {
+          const homeC = clubs.find((c) => c.id === m.homeClubId);
+          const awayC = clubs.find((c) => c.id === m.awayClubId);
+          if (homeC && awayC && (state.activeClubId === m.homeClubId || state.activeClubId === m.awayClubId)) {
+            weeklyNews.push({
+              id: makeId(),
+              week: currentWeek,
+              year: currentYear,
+              title: `Relegation Six-Pointer!`,
+              description: `${homeC.name} vs ${awayC.name} — both fighting to stay up. This result could decide who drops.`,
+              type: 'sporting'
+            });
+          }
+        }
+      });
+    }
+  });
+
+  // 1b. Injury recovery for all players
+  allPlayers.forEach((p, idx) => {
+    allPlayers[idx] = tickInjuryRecovery(p);
+  });
+
+  // 1c. Rest recovery for players whose clubs did not have a match this week
+  allPlayers.forEach((p, idx) => {
+    if (p.clubId && !clubsWithMatchThisWeek.has(p.clubId)) {
+      allPlayers[idx] = applyRestRecovery(p);
+    }
   });
 
   // 2. Weekly Financial Tick for ALL clubs
@@ -374,9 +601,12 @@ export function simulateWeek(state: GameState): GameState {
       club.academyQuality = Math.min(100, club.academyQuality + 1);
     }
     if (mgr && Math.random() < 0.08) {
-      // Squad quality grows slightly with highly-rated manager
+      // Player abilities grow slightly with highly-rated manager
       const change = mgr.rating > 80 ? 0.4 : (mgr.rating > 60 ? 0.2 : 0.1);
-      club.squadQuality = Math.min(100, club.squadQuality + change);
+      const clubPlayers = allPlayers.filter((p) => p.clubId === club.id);
+      clubPlayers.forEach((p) => {
+        p.ability = Math.min(99, p.ability + change);
+      });
     }
 
     // Handle stadium upgrades completion if queued (not fully modeled in types, but we'll run simple growth checks)
@@ -450,7 +680,11 @@ export function simulateWeek(state: GameState): GameState {
       if (eventChance < 0.25) {
         // Academy Golden Generation
         activeClub.academyQuality = Math.min(100, activeClub.academyQuality + 15);
-        activeClub.squadQuality = Math.min(100, activeClub.squadQuality + 4);
+        const goldenPlayers = allPlayers.filter((p) => p.clubId === activeClub.id);
+        goldenPlayers.forEach((gp) => {
+          gp.ability = Math.min(99, gp.ability + 2);
+          gp.potential = Math.min(99, gp.potential + 3);
+        });
         weeklyNews.push({
           id: makeId(),
           week: currentWeek,
@@ -565,14 +799,15 @@ export function simulateWeek(state: GameState): GameState {
   // Combine and update events
   events = [...weeklyNews, ...events];
 
-  // 5. SEASON END TRANSITIONS (Week 6)
+  // 5. SEASON END TRANSITIONS (when all leagues' fixtures are exhausted)
+  const maxSeasonWeeks = Math.max(...leagues.map((l) => getSeasonLengthWeeks(l.teamsCount)), 0);
   let isNewSeason = false;
   let newYear = currentYear;
   let newWeek = currentWeek + 1;
   let careerSeasonsCompleted = state.careerStats.seasonsCompleted;
   let careerTrophies = state.careerStats.totalTrophies;
 
-  if (currentWeek >= 6) {
+  if (maxSeasonWeeks > 0 && currentWeek >= maxSeasonWeeks) {
     isNewSeason = true;
     newYear = currentYear + 1;
     newWeek = 1;
@@ -684,6 +919,65 @@ export function simulateWeek(state: GameState): GameState {
       }
     });
 
+    // Playoffs for the tier-2 league (promotion-eligible): positions 3-6 compete for a promotion spot
+    const playoffLeague = sortedLeagues.find((l) => l.tier === 2);
+    if (playoffLeague && playoffLeague.standings.length >= 6) {
+      const plStandings = playoffLeague.standings;
+      const pos3 = plStandings[2]?.clubId;
+      const pos4 = plStandings[3]?.clubId;
+      const pos5 = plStandings[4]?.clubId;
+      const pos6 = plStandings[5]?.clubId;
+      const club3 = pos3 ? clubs.find((c) => c.id === pos3) : undefined;
+      const club4 = pos4 ? clubs.find((c) => c.id === pos4) : undefined;
+      const club5 = pos5 ? clubs.find((c) => c.id === pos5) : undefined;
+      const club6 = pos6 ? clubs.find((c) => c.id === pos6) : undefined;
+
+      if (club3 && club4 && club5 && club6) {
+        // Simulate semifinals
+        const sf1 = simulateMatch(club3, club6, null, null, currentWeek + 1, undefined, undefined, leagues);
+        const sf2 = simulateMatch(club4, club5, null, null, currentWeek + 1, undefined, undefined, leagues);
+        const sf1Winner = sf1.homeScore >= sf1.awayScore ? club3 : club6;
+        const sf2Winner = sf2.homeScore >= sf2.awayScore ? club4 : club5;
+
+        // Simulate final
+        const finalResult = simulateMatch(sf1Winner, sf2Winner, null, null, currentWeek + 2, undefined, undefined, leagues);
+        const playoffWinner = finalResult.homeScore >= finalResult.awayScore ? sf1Winner : sf2Winner;
+
+        const upperLeague = sortedLeagues.find((l) => l.tier === 1);
+        if (upperLeague) {
+          promotions.push({
+            fromLeague: playoffLeague.id,
+            toLeague: upperLeague.id,
+            clubId: playoffWinner.id,
+            clubName: playoffWinner.name
+          });
+
+          // Add playoff event
+          events.unshift({
+            id: makeId(),
+            week: 1,
+            year: newYear,
+            title: `Playoff Final: ${sf1Winner.name} vs ${sf2Winner.name}`,
+            description: `${playoffWinner.name} wins the playoffs and secures promotion to ${upperLeague.name}! Final score: ${finalResult.homeScore} - ${finalResult.awayScore}.`,
+            type: 'sporting'
+          });
+
+          if (playoffWinner.id === state.activeClubId) {
+            inbox.unshift({
+              id: makeId(),
+              week: 1,
+              year: newYear,
+              sender: 'Club Board of Directors',
+              senderRole: 'Executive Committee',
+              subject: 'PLAYOFF VICTORY! We\'re Going Up!',
+              content: `Chairman,\n\nAgainst all odds, we've won the playoffs! ${playoffWinner.name} will compete in ${upperLeague.name} next season. Congratulations!`,
+              read: false
+            });
+          }
+        }
+      }
+    }
+
     // Apply promotions & relegations to club structures
     promotions.forEach((promo) => {
       const club = clubs.find((c) => c.id === promo.clubId);
@@ -788,12 +1082,13 @@ export function simulateWeek(state: GameState): GameState {
     reputation: playerRep,
   };
 
-  // Rebuild the final database with modified clubs, leagues
+  // Rebuild the final database with modified clubs, leagues, and players
   const updatedDb = {
     ...db,
     clubs,
     leagues,
-    availableStaff: staff
+    availableStaff: staff,
+    players: allPlayers
   };
 
   return {

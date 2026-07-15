@@ -55,6 +55,25 @@ export interface ClubHistoryEntry {
   trophyWon?: string;
 }
 
+export type PlayerPosition = 'GK' | 'DEF' | 'MID' | 'FWD';
+
+export interface Player {
+  id: string;
+  name: string;
+  age: number;
+  position: PlayerPosition;
+  ability: number;       // 1-100, current true quality
+  potential: number;     // 1-100, ceiling for young players
+  morale: number;        // 1-100
+  fitness: number;       // 1-100, drops with matches/no rest, recovers with rest weeks
+  form: number;          // rolling modifier from recent performances, can go negative
+  injuryWeeksRemaining: number; // 0 = fit
+  wageWeekly: number;    // in millions of £
+  contractYearsLeft: number;
+  clubId: string | null; // null = free agent
+  marketValue: number;   // derived, recalculated periodically
+}
+
 export interface Club {
   id: string;
   name: string;
@@ -75,7 +94,7 @@ export interface Club {
   trainingFacilitiesLevel: number; // 1 to 5
   youthFacilitiesLevel: number; // 1 to 5
   academyQuality: number; // 1 to 100
-  squadQuality: number; // 1 to 100
+  squadQuality: number; // 1 to 100 (derived from starting XI each week)
   reputation: number; // 1 to 100
   sponsorName: string;
   sponsorIncomeWeekly: number; // in millions of £
@@ -86,11 +105,22 @@ export interface Club {
   managerId: string | null;
   ceoId: string | null;
   sportingDirectorId: string | null;
+  mentality: 'attacking' | 'balanced' | 'defensive';
+  squad: string[]; // player IDs belonging to this club
   history: ClubHistoryEntry[];
   boardObjective: BoardObjective;
   transferBudget: number; // in millions of £
   revenueLastYear?: number; // in millions of £
   profitLastYear?: number; // in millions of £
+}
+
+export interface PlayerTransferListing {
+  id: string;
+  playerId: string;
+  askingPrice: number; // in millions of £
+  sellingClubId: string;
+  listingWeek: number;
+  listingYear: number;
 }
 
 export interface StandingEntry {
@@ -124,6 +154,7 @@ export interface League {
   prestige: number; // 1 to 100
   standings: StandingEntry[];
   fixtures: Match[];
+  derbies?: [string, string][]; // club ID pairs for rivalry matches
   history: {
     year: number;
     winnerId: string;
@@ -163,7 +194,7 @@ export interface InboxMessage {
   subject: string;
   content: string;
   actionType?: MessageActionType;
-  actionData?: any;
+  actionData?: Record<string, unknown>;
   read: boolean;
 }
 
@@ -186,6 +217,7 @@ export interface GameDatabase {
   clubs: Club[];
   leagues: League[];
   availableStaff: Staff[];
+  players: Player[];
   sponsors: { name: string; baseIncomeWeekly: number; tierMin: number }[];
 }
 
@@ -196,6 +228,7 @@ export interface GameState {
   activeClubId: string | null; // Currently owned club (if any)
   marketListings: ClubMarketListing[];
   takeoverOffers: TakeoverOffer[];
+  playerTransferListings: PlayerTransferListing[];
   inbox: InboxMessage[];
   events: EventLog[];
   simulationSpeed: 'paused' | 'normal' | 'fast';

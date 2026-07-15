@@ -38,7 +38,8 @@ export default function MarketAndTakeovers({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLeagueId, setSelectedLeagueId] = useState<string>('all');
   const [showOnlyAffordable, setShowOnlyAffordable] = useState(false);
-  const [sortBy, setSortBy] = useState<'price-asc' | 'price-desc' | 'valuation-desc' | 'tier-desc' | 'name-asc'>('price-asc');
+  type SortOption = 'price-asc' | 'price-desc' | 'valuation-desc' | 'tier-desc' | 'name-asc';
+  const [sortBy, setSortBy] = useState<SortOption>('price-asc');
 
   const formatMoney = (val: number) => {
     if (val >= 1000) return `£${(val / 1000).toFixed(2)}B`;
@@ -217,7 +218,7 @@ export default function MarketAndTakeovers({
             <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500 pointer-events-none" />
             <select
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as any)}
+              onChange={(e) => setSortBy(e.target.value as SortOption)}
               className="w-full bg-slate-950 border border-slate-800/80 rounded-xl py-2.5 pl-9 pr-3 text-xs text-white focus:outline-none focus:border-indigo-500 appearance-none cursor-pointer"
             >
               <option value="price-asc">Price: Low to High</option>

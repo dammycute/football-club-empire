@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { GameDatabase, Club, League, Staff } from '../types/game';
+import { GameDatabase, Club, League, Staff, Player } from '../types/game';
 import { useToast } from './Toast';
 import { Download, Upload, CheckCircle2, AlertTriangle, Plus, Trash2, Edit2, FileJson, Play } from 'lucide-react';
 
@@ -59,22 +59,26 @@ export default function ModdingHub({
       if (messages.length > 0) return { success: false, messages };
 
       // Validate clubs
-      data.clubs.forEach((club: any, idx: number) => {
-        const clubLabel = club.name || `Club #${idx + 1}`;
+      data.clubs.forEach((club: Record<string, unknown>, idx: number) => {
+        const clubLabel = String(club.name || `Club #${idx + 1}`);
         if (!club.id) messages.push(`⚠️ Club '${clubLabel}' has no 'id' field`);
         if (!club.name) messages.push(`⚠️ Club #${idx + 1} is missing a 'name'`);
         if (!club.leagueId) messages.push(`⚠️ Club '${clubLabel}' is missing 'leagueId'`);
-        if (club.valuation === undefined || isNaN(club.valuation)) messages.push(`⚠️ Club '${clubLabel}' has invalid 'valuation'`);
-        if (club.cash === undefined || isNaN(club.cash)) messages.push(`⚠️ Club '${clubLabel}' has invalid 'cash'`);
-        if (club.debt === undefined || isNaN(club.debt)) messages.push(`⚠️ Club '${clubLabel}' has invalid 'debt'`);
+        const clubVal = club.valuation as number;
+        const clubCash = club.cash as number;
+        const clubDebt = club.debt as number;
+        if (clubVal === undefined || isNaN(clubVal)) messages.push(`⚠️ Club '${clubLabel}' has invalid 'valuation'`);
+        if (clubCash === undefined || isNaN(clubCash)) messages.push(`⚠️ Club '${clubLabel}' has invalid 'cash'`);
+        if (clubDebt === undefined || isNaN(clubDebt)) messages.push(`⚠️ Club '${clubLabel}' has invalid 'debt'`);
       });
 
       // Validate leagues
-      data.leagues.forEach((league: any, idx: number) => {
-        const lgLabel = league.name || `League #${idx + 1}`;
+      data.leagues.forEach((league: Record<string, unknown>, idx: number) => {
+        const lgLabel = String(league.name || `League #${idx + 1}`);
         if (!league.id) messages.push(`⚠️ League '${lgLabel}' has no 'id' field`);
         if (!league.name) messages.push(`⚠️ League #${idx + 1} has no 'name'`);
-        if (!league.tier || isNaN(league.tier)) messages.push(`⚠️ League '${lgLabel}' is missing a valid numeric 'tier'`);
+        const leagueTier = league.tier as number;
+        if (!leagueTier || isNaN(leagueTier)) messages.push(`⚠️ League '${lgLabel}' is missing a valid numeric 'tier'`);
       });
 
       if (messages.some(m => m.startsWith("❌"))) {
@@ -86,8 +90,9 @@ export default function ModdingHub({
       messages.push("✅ Database is fully ready to be enabled for careers!");
 
       return { success: true, messages, parsedDb: data as GameDatabase };
-    } catch (e: any) {
-      return { success: false, messages: [`❌ Invalid JSON Syntax: ${e.message}`] };
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Unknown error';
+      return { success: false, messages: [`❌ Invalid JSON Syntax: ${msg}`] };
     }
   };
 
@@ -112,6 +117,7 @@ export default function ModdingHub({
         version: report.parsedDb.version || '1.0.0',
         author: report.parsedDb.author || 'Imported User',
         availableStaff: report.parsedDb.availableStaff || [],
+        players: report.parsedDb.players || [],
         sponsors: report.parsedDb.sponsors || []
       };
 
@@ -214,7 +220,9 @@ export default function ModdingHub({
         sportingDirectorId: null,
         history: [],
         boardObjective: { type: 'mid_table', description: 'Survive in mid tier', targetProgress: 0, targetGoal: 2, rewardWealth: 1.0, penaltyRep: 4 },
-        transferBudget: 1.5
+        transferBudget: 1.5,
+        mentality: 'balanced',
+        squad: []
       } as Club)),
       leagues: leaguesList.map(l => ({
         ...l,
@@ -230,6 +238,7 @@ export default function ModdingHub({
         history: []
       } as League)),
       availableStaff: [],
+      players: [],
       sponsors: []
     };
 
@@ -269,7 +278,7 @@ export default function ModdingHub({
     setClubsList(clubsList.filter((_, i) => i !== idx));
   };
 
-  const updateClubField = (idx: number, field: string, value: any) => {
+  const updateClubField = (idx: number, field: string, value: string | number | boolean) => {
     const updated = [...clubsList];
     updated[idx] = { ...updated[idx], [field]: value };
     setClubsList(updated);

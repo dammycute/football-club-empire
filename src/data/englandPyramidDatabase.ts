@@ -1,4 +1,6 @@
-import { GameDatabase, Club, League, Staff } from '../types/game';
+import { GameDatabase, Club, League, Staff, Player } from '../types/game';
+import { generateFixturesForLeague } from '../utils/simEngine';
+import { generatePlayersForClub } from '../utils/playerUtils';
 
 // Helper to generate UUIDs if needed
 const uuid = () => Math.random().toString(36).substring(2, 11);
@@ -58,11 +60,15 @@ export const getEnglandPyramidDatabase = (): GameDatabase => {
       name: 'Premier Championship',
       tier: 1,
       country: 'England',
-      teamsCount: 4,
+      teamsCount: 10,
       tvDealWeeklyPayout: 0.8, // £0.8M per week
       prestige: 95,
       standings: [],
       fixtures: [],
+      derbies: [
+        ['c-man-blue', 'c-man-red'],
+        ['c-lon-gunners', 'c-eng-tottenham'],
+      ],
       history: [
         { year: 2025, winnerId: 'c-man-blue', winnerName: 'Manchester Blue', runnerUpId: 'c-lon-gunners', runnerUpName: 'London Gunners' }
       ]
@@ -72,11 +78,15 @@ export const getEnglandPyramidDatabase = (): GameDatabase => {
       name: 'Elite Championship',
       tier: 2,
       country: 'England',
-      teamsCount: 4,
+      teamsCount: 10,
       tvDealWeeklyPayout: 0.35, // £0.35M per week
       prestige: 75,
       standings: [],
       fixtures: [],
+      derbies: [
+        ['c-leeds-peacock', 'c-eng-sunderland'],
+        ['c-eng-norwich', 'c-ipswich-town'],
+      ],
       history: [
         { year: 2025, winnerId: 'c-leeds-peacock', winnerName: 'Leeds Peacock', runnerUpId: 'c-leicester-fox', runnerUpName: 'Leicester Fox' }
       ]
@@ -91,6 +101,9 @@ export const getEnglandPyramidDatabase = (): GameDatabase => {
       prestige: 55,
       standings: [],
       fixtures: [],
+      derbies: [
+        ['c-portsmouth-blue', 'c-derby-rams'],
+      ],
       history: [
         { year: 2025, winnerId: 'c-portsmouth-blue', winnerName: 'Portsmouth Blue', runnerUpId: 'c-derby-rams', runnerUpName: 'Derby Rams' }
       ]
@@ -105,6 +118,9 @@ export const getEnglandPyramidDatabase = (): GameDatabase => {
       prestige: 35,
       standings: [],
       fixtures: [],
+      derbies: [
+        ['c-wrexham-dragons', 'c-stockport-hatters'],
+      ],
       history: [
         { year: 2025, winnerId: 'c-wrexham-dragons', winnerName: 'Wrexham Dragons', runnerUpId: 'c-stockport-hatters', runnerUpName: 'Stockport Hatters' }
       ]
@@ -119,6 +135,9 @@ export const getEnglandPyramidDatabase = (): GameDatabase => {
       prestige: 22,
       standings: [],
       fixtures: [],
+      derbies: [
+        ['c-chesterfield', 'c-barnet'],
+      ],
       history: [
         { year: 2025, winnerId: 'c-chesterfield', winnerName: 'Chesterfield Spireites', runnerUpId: 'c-barnet', runnerUpName: 'Barnet Bees' }
       ]
@@ -133,6 +152,9 @@ export const getEnglandPyramidDatabase = (): GameDatabase => {
       prestige: 12,
       standings: [],
       fixtures: [],
+      derbies: [
+        ['c-scunthorpe', 'c-chester-seals'],
+      ],
       history: [
         { year: 2025, winnerId: 'c-scunthorpe', winnerName: 'Scunthorpe Iron', runnerUpId: 'c-chester-seals', runnerUpName: 'Chester Seals' }
       ]
@@ -147,6 +169,9 @@ export const getEnglandPyramidDatabase = (): GameDatabase => {
       prestige: 10,
       standings: [],
       fixtures: [],
+      derbies: [
+        ['c-yeovil', 'c-torquay'],
+      ],
       history: [
         { year: 2025, winnerId: 'c-yeovil', winnerName: 'Yeovil Glovers', runnerUpId: 'c-chelmsford', runnerUpName: 'Chelmsford Clarets' }
       ]
@@ -197,6 +222,8 @@ export const getEnglandPyramidDatabase = (): GameDatabase => {
         rewardWealth: 15.0,
         penaltyRep: 12
       },
+      mentality: 'balanced',
+      squad: [],
       transferBudget: 45.0
     },
     {
@@ -241,6 +268,8 @@ export const getEnglandPyramidDatabase = (): GameDatabase => {
         rewardWealth: 8.0,
         penaltyRep: 8
       },
+      mentality: 'balanced',
+      squad: [],
       transferBudget: 30.0
     },
     {
@@ -285,6 +314,8 @@ export const getEnglandPyramidDatabase = (): GameDatabase => {
         rewardWealth: 7.5,
         penaltyRep: 10
       },
+      mentality: 'balanced',
+      squad: [],
       transferBudget: 25.0
     },
     {
@@ -329,7 +360,287 @@ export const getEnglandPyramidDatabase = (): GameDatabase => {
         rewardWealth: 5.0,
         penaltyRep: 5
       },
+      mentality: 'balanced',
+      squad: [],
       transferBudget: 50.0
+    },
+
+    // Tier 1 Extra Clubs (6 more to reach 10)
+    {
+      id: 'c-eng-tottenham',
+      name: 'Tottenham Athletic',
+      shortName: 'TOT',
+      colorPrimary: 'indigo',
+      colorSecondary: 'white',
+      country: 'England',
+      leagueId: 'l-premier-championship',
+      valuation: 720,
+      cash: 35,
+      debt: 180,
+      interestRate: 0.045,
+      wageBillWeekly: 3.2,
+      fanbaseSize: 2900000,
+      stadiumName: 'White Hart Arena',
+      stadiumCapacity: 62000,
+      stadiumLevel: 4,
+      trainingFacilitiesLevel: 4,
+      youthFacilitiesLevel: 4,
+      academyQuality: 80,
+      squadQuality: 82,
+      reputation: 83,
+      sponsorName: 'Crown Airlines',
+      sponsorIncomeWeekly: 0.7,
+      sponsorYearsLeft: 3,
+      ticketPrice: 62,
+      seasonTicketPrice: 900,
+      seasonTicketsSold: 32000,
+      managerId: 'eng-mgr-2',
+      ceoId: 'eng-ceo-2',
+      sportingDirectorId: null,
+      history: [
+        { year: 2025, leaguePosition: 5, leagueName: 'Premier Championship', revenue: 380, profit: 8, valuation: 700 }
+      ],
+      boardObjective: {
+        type: 'mid_table',
+        description: 'Secure a top-half finish',
+        targetProgress: 5,
+        targetGoal: 5,
+        rewardWealth: 6.0,
+        penaltyRep: 6
+      },
+      mentality: 'balanced',
+      squad: [],
+      transferBudget: 20.0
+    },
+    {
+      id: 'c-eng-aston-villa',
+      name: 'Aston Villa Lions',
+      shortName: 'AVL',
+      colorPrimary: 'purple',
+      colorSecondary: 'sky',
+      country: 'England',
+      leagueId: 'l-premier-championship',
+      valuation: 580,
+      cash: 28,
+      debt: 120,
+      interestRate: 0.05,
+      wageBillWeekly: 2.8,
+      fanbaseSize: 2200000,
+      stadiumName: 'Villa Park Ground',
+      stadiumCapacity: 42000,
+      stadiumLevel: 3,
+      trainingFacilitiesLevel: 4,
+      youthFacilitiesLevel: 3,
+      academyQuality: 72,
+      squadQuality: 78,
+      reputation: 76,
+      sponsorName: 'Aero Sport',
+      sponsorIncomeWeekly: 0.55,
+      sponsorYearsLeft: 2,
+      ticketPrice: 55,
+      seasonTicketPrice: 780,
+      seasonTicketsSold: 26000,
+      managerId: null,
+      ceoId: null,
+      sportingDirectorId: null,
+      history: [
+        { year: 2025, leaguePosition: 6, leagueName: 'Premier Championship', revenue: 310, profit: 5, valuation: 560 }
+      ],
+      boardObjective: {
+        type: 'mid_table',
+        description: 'Target a top-half finish',
+        targetProgress: 6,
+        targetGoal: 6,
+        rewardWealth: 5.0,
+        penaltyRep: 5
+      },
+      mentality: 'balanced',
+      squad: [],
+      transferBudget: 15.0
+    },
+    {
+      id: 'c-eng-newcastle',
+      name: 'Newcastle Magpies',
+      shortName: 'NEW',
+      colorPrimary: 'slate',
+      colorSecondary: 'white',
+      country: 'England',
+      leagueId: 'l-premier-championship',
+      valuation: 650,
+      cash: 45,
+      debt: 80,
+      interestRate: 0.045,
+      wageBillWeekly: 3.0,
+      fanbaseSize: 2800000,
+      stadiumName: "St James' Park Arena",
+      stadiumCapacity: 52000,
+      stadiumLevel: 4,
+      trainingFacilitiesLevel: 4,
+      youthFacilitiesLevel: 3,
+      academyQuality: 68,
+      squadQuality: 80,
+      reputation: 80,
+      sponsorName: 'Global Mutual',
+      sponsorIncomeWeekly: 0.65,
+      sponsorYearsLeft: 4,
+      ticketPrice: 58,
+      seasonTicketPrice: 850,
+      seasonTicketsSold: 34000,
+      managerId: 'eng-mgr-3',
+      ceoId: null,
+      sportingDirectorId: 'eng-sd-3',
+      history: [
+        { year: 2025, leaguePosition: 4, leagueName: 'Premier Championship', revenue: 350, profit: 15, valuation: 630 }
+      ],
+      boardObjective: {
+        type: 'mid_table',
+        description: 'Push for European qualification',
+        targetProgress: 4,
+        targetGoal: 4,
+        rewardWealth: 7.0,
+        penaltyRep: 7
+      },
+      mentality: 'balanced',
+      squad: [],
+      transferBudget: 22.0
+    },
+    {
+      id: 'c-eng-chelsea',
+      name: 'Chelsea Blues',
+      shortName: 'CHE',
+      colorPrimary: 'blue',
+      colorSecondary: 'white',
+      country: 'England',
+      leagueId: 'l-premier-championship',
+      valuation: 800,
+      cash: 55,
+      debt: 250,
+      interestRate: 0.05,
+      wageBillWeekly: 3.5,
+      fanbaseSize: 3000000,
+      stadiumName: 'Stamford Park',
+      stadiumCapacity: 41000,
+      stadiumLevel: 3,
+      trainingFacilitiesLevel: 5,
+      youthFacilitiesLevel: 4,
+      academyQuality: 88,
+      squadQuality: 84,
+      reputation: 85,
+      sponsorName: 'GoldBet',
+      sponsorIncomeWeekly: 0.8,
+      sponsorYearsLeft: 2,
+      ticketPrice: 65,
+      seasonTicketPrice: 950,
+      seasonTicketsSold: 29000,
+      managerId: null,
+      ceoId: null,
+      sportingDirectorId: null,
+      history: [
+        { year: 2025, leaguePosition: 7, leagueName: 'Premier Championship', revenue: 420, profit: -10, valuation: 780 }
+      ],
+      boardObjective: {
+        type: 'make_profit',
+        description: 'Reduce wage bill and balance the books',
+        targetProgress: 3.5,
+        targetGoal: 3.0,
+        rewardWealth: 6.0,
+        penaltyRep: 6
+      },
+      mentality: 'balanced',
+      squad: [],
+      transferBudget: 35.0
+    },
+    {
+      id: 'c-eng-everton',
+      name: 'Everton Toffees',
+      shortName: 'EVE',
+      colorPrimary: 'blue',
+      colorSecondary: 'white',
+      country: 'England',
+      leagueId: 'l-premier-championship',
+      valuation: 420,
+      cash: 12,
+      debt: 160,
+      interestRate: 0.055,
+      wageBillWeekly: 2.2,
+      fanbaseSize: 1800000,
+      stadiumName: 'Goodison Arena',
+      stadiumCapacity: 39000,
+      stadiumLevel: 2,
+      trainingFacilitiesLevel: 3,
+      youthFacilitiesLevel: 3,
+      academyQuality: 65,
+      squadQuality: 72,
+      reputation: 70,
+      sponsorName: 'Apex Telecom',
+      sponsorIncomeWeekly: 0.35,
+      sponsorYearsLeft: 1,
+      ticketPrice: 42,
+      seasonTicketPrice: 580,
+      seasonTicketsSold: 20000,
+      managerId: null,
+      ceoId: null,
+      sportingDirectorId: null,
+      history: [
+        { year: 2025, leaguePosition: 8, leagueName: 'Premier Championship', revenue: 250, profit: -5, valuation: 400 }
+      ],
+      boardObjective: {
+        type: 'avoid_relegation',
+        description: 'Maintain Premier Championship status',
+        targetProgress: 8,
+        targetGoal: 8,
+        rewardWealth: 4.0,
+        penaltyRep: 6
+      },
+      mentality: 'balanced',
+      squad: [],
+      transferBudget: 8.0
+    },
+    {
+      id: 'c-eng-west-ham',
+      name: 'West Ham Hammers',
+      shortName: 'WHU',
+      colorPrimary: 'amber',
+      colorSecondary: 'blue',
+      country: 'England',
+      leagueId: 'l-premier-championship',
+      valuation: 380,
+      cash: 18,
+      debt: 90,
+      interestRate: 0.05,
+      wageBillWeekly: 2.0,
+      fanbaseSize: 1600000,
+      stadiumName: 'London Bowl',
+      stadiumCapacity: 60000,
+      stadiumLevel: 3,
+      trainingFacilitiesLevel: 3,
+      youthFacilitiesLevel: 3,
+      academyQuality: 70,
+      squadQuality: 74,
+      reputation: 72,
+      sponsorName: 'Steel Corp',
+      sponsorIncomeWeekly: 0.3,
+      sponsorYearsLeft: 2,
+      ticketPrice: 45,
+      seasonTicketPrice: 620,
+      seasonTicketsSold: 35000,
+      managerId: null,
+      ceoId: null,
+      sportingDirectorId: null,
+      history: [
+        { year: 2025, leaguePosition: 9, leagueName: 'Premier Championship', revenue: 220, profit: 3, valuation: 360 }
+      ],
+      boardObjective: {
+        type: 'mid_table',
+        description: 'Secure a comfortable mid-table finish',
+        targetProgress: 9,
+        targetGoal: 9,
+        rewardWealth: 3.0,
+        penaltyRep: 4
+      },
+      mentality: 'balanced',
+      squad: [],
+      transferBudget: 10.0
     },
 
     // TIER 2 CLUBS (ELITE CHAMPIONSHIP)
@@ -375,6 +686,8 @@ export const getEnglandPyramidDatabase = (): GameDatabase => {
         rewardWealth: 3.0,
         penaltyRep: 8
       },
+      mentality: 'balanced',
+      squad: [],
       transferBudget: 8.5
     },
     {
@@ -419,6 +732,8 @@ export const getEnglandPyramidDatabase = (): GameDatabase => {
         rewardWealth: 3.0,
         penaltyRep: 8
       },
+      mentality: 'balanced',
+      squad: [],
       transferBudget: 7.5
     },
     {
@@ -463,6 +778,8 @@ export const getEnglandPyramidDatabase = (): GameDatabase => {
         rewardWealth: 3.0,
         penaltyRep: 8
       },
+      mentality: 'balanced',
+      squad: [],
       transferBudget: 6.0
     },
     {
@@ -507,7 +824,287 @@ export const getEnglandPyramidDatabase = (): GameDatabase => {
         rewardWealth: 3.0,
         penaltyRep: 8
       },
+      mentality: 'balanced',
+      squad: [],
       transferBudget: 5.0
+    },
+
+    // Tier 2 Extra Clubs (6 more to reach 10)
+    {
+      id: 'c-eng-middlesbrough',
+      name: 'Middlesbrough Steel',
+      shortName: 'MID',
+      colorPrimary: 'red',
+      colorSecondary: 'white',
+      country: 'England',
+      leagueId: 'l-elite-championship',
+      valuation: 85,
+      cash: 6,
+      debt: 30,
+      interestRate: 0.06,
+      wageBillWeekly: 0.55,
+      fanbaseSize: 380000,
+      stadiumName: 'Riverside Ground',
+      stadiumCapacity: 34000,
+      stadiumLevel: 2,
+      trainingFacilitiesLevel: 2,
+      youthFacilitiesLevel: 2,
+      academyQuality: 58,
+      squadQuality: 60,
+      reputation: 58,
+      sponsorName: 'Yorkshire Brew',
+      sponsorIncomeWeekly: 0.12,
+      sponsorYearsLeft: 2,
+      ticketPrice: 28,
+      seasonTicketPrice: 360,
+      seasonTicketsSold: 14000,
+      managerId: 'eng-mgr-10',
+      ceoId: null,
+      sportingDirectorId: null,
+      history: [
+        { year: 2025, leaguePosition: 5, leagueName: 'Elite Championship', revenue: 38, profit: -1, valuation: 82 }
+      ],
+      boardObjective: {
+        type: 'mid_table',
+        description: 'Finish in a comfortable mid-table position',
+        targetProgress: 5,
+        targetGoal: 5,
+        rewardWealth: 1.2,
+        penaltyRep: 3
+      },
+      mentality: 'balanced',
+      squad: [],
+      transferBudget: 2.0
+    },
+    {
+      id: 'c-eng-sunderland',
+      name: 'Sunderland Cats',
+      shortName: 'SUN',
+      colorPrimary: 'red',
+      colorSecondary: 'white',
+      country: 'England',
+      leagueId: 'l-elite-championship',
+      valuation: 72,
+      cash: 4,
+      debt: 25,
+      interestRate: 0.065,
+      wageBillWeekly: 0.48,
+      fanbaseSize: 420000,
+      stadiumName: 'Stadium of Light',
+      stadiumCapacity: 49000,
+      stadiumLevel: 3,
+      trainingFacilitiesLevel: 2,
+      youthFacilitiesLevel: 2,
+      academyQuality: 55,
+      squadQuality: 56,
+      reputation: 55,
+      sponsorName: 'Steel Corp',
+      sponsorIncomeWeekly: 0.1,
+      sponsorYearsLeft: 1,
+      ticketPrice: 26,
+      seasonTicketPrice: 340,
+      seasonTicketsSold: 18000,
+      managerId: null,
+      ceoId: null,
+      sportingDirectorId: null,
+      history: [
+        { year: 2025, leaguePosition: 6, leagueName: 'Elite Championship', revenue: 32, profit: -2, valuation: 70 }
+      ],
+      boardObjective: {
+        type: 'mid_table',
+        description: 'Rebuild after recent struggles',
+        targetProgress: 6,
+        targetGoal: 6,
+        rewardWealth: 1.0,
+        penaltyRep: 3
+      },
+      mentality: 'balanced',
+      squad: [],
+      transferBudget: 1.5
+    },
+    {
+      id: 'c-eng-coventry',
+      name: 'Coventry Sky',
+      shortName: 'COV',
+      colorPrimary: 'sky',
+      colorSecondary: 'navy',
+      country: 'England',
+      leagueId: 'l-elite-championship',
+      valuation: 55,
+      cash: 3.5,
+      debt: 18,
+      interestRate: 0.06,
+      wageBillWeekly: 0.38,
+      fanbaseSize: 220000,
+      stadiumName: 'CBS Arena',
+      stadiumCapacity: 32000,
+      stadiumLevel: 2,
+      trainingFacilitiesLevel: 2,
+      youthFacilitiesLevel: 2,
+      academyQuality: 52,
+      squadQuality: 52,
+      reputation: 50,
+      sponsorName: 'Midland Auto',
+      sponsorIncomeWeekly: 0.08,
+      sponsorYearsLeft: 2,
+      ticketPrice: 24,
+      seasonTicketPrice: 300,
+      seasonTicketsSold: 10000,
+      managerId: null,
+      ceoId: null,
+      sportingDirectorId: null,
+      history: [
+        { year: 2025, leaguePosition: 7, leagueName: 'Elite Championship', revenue: 25, profit: 0.5, valuation: 52 }
+      ],
+      boardObjective: {
+        type: 'avoid_relegation',
+        description: 'Avoid relegation to the third division',
+        targetProgress: 7,
+        targetGoal: 7,
+        rewardWealth: 0.8,
+        penaltyRep: 4
+      },
+      mentality: 'balanced',
+      squad: [],
+      transferBudget: 1.2
+    },
+    {
+      id: 'c-eng-millwall',
+      name: 'Millwall Lions',
+      shortName: 'MIL',
+      colorPrimary: 'navy',
+      colorSecondary: 'white',
+      country: 'England',
+      leagueId: 'l-elite-championship',
+      valuation: 48,
+      cash: 2.8,
+      debt: 15,
+      interestRate: 0.065,
+      wageBillWeekly: 0.32,
+      fanbaseSize: 180000,
+      stadiumName: 'The Den Ground',
+      stadiumCapacity: 20000,
+      stadiumLevel: 1,
+      trainingFacilitiesLevel: 2,
+      youthFacilitiesLevel: 1,
+      academyQuality: 48,
+      squadQuality: 48,
+      reputation: 46,
+      sponsorName: 'Port Logistics',
+      sponsorIncomeWeekly: 0.06,
+      sponsorYearsLeft: 2,
+      ticketPrice: 22,
+      seasonTicketPrice: 280,
+      seasonTicketsSold: 8000,
+      managerId: null,
+      ceoId: null,
+      sportingDirectorId: null,
+      history: [
+        { year: 2025, leaguePosition: 8, leagueName: 'Elite Championship', revenue: 20, profit: -0.5, valuation: 46 }
+      ],
+      boardObjective: {
+        type: 'avoid_relegation',
+        description: 'Survive in the Elite Championship',
+        targetProgress: 8,
+        targetGoal: 8,
+        rewardWealth: 0.6,
+        penaltyRep: 4
+      },
+      mentality: 'balanced',
+      squad: [],
+      transferBudget: 0.8
+    },
+    {
+      id: 'c-eng-norwich',
+      name: 'Norwich Canaries',
+      shortName: 'NOR',
+      colorPrimary: 'amber',
+      colorSecondary: 'emerald',
+      country: 'England',
+      leagueId: 'l-elite-championship',
+      valuation: 45,
+      cash: 5.0,
+      debt: 12,
+      interestRate: 0.055,
+      wageBillWeekly: 0.35,
+      fanbaseSize: 200000,
+      stadiumName: 'Carrow Park',
+      stadiumCapacity: 27000,
+      stadiumLevel: 2,
+      trainingFacilitiesLevel: 2,
+      youthFacilitiesLevel: 3,
+      academyQuality: 60,
+      squadQuality: 50,
+      reputation: 48,
+      sponsorName: 'Avon Bridge Co',
+      sponsorIncomeWeekly: 0.07,
+      sponsorYearsLeft: 3,
+      ticketPrice: 25,
+      seasonTicketPrice: 310,
+      seasonTicketsSold: 12000,
+      managerId: null,
+      ceoId: null,
+      sportingDirectorId: null,
+      history: [
+        { year: 2025, leaguePosition: 9, leagueName: 'Elite Championship', revenue: 22, profit: 1.0, valuation: 44 }
+      ],
+      boardObjective: {
+        type: 'promotion',
+        description: 'Fight for promotion to the Premier',
+        targetProgress: 9,
+        targetGoal: 1,
+        rewardWealth: 2.5,
+        penaltyRep: 5
+      },
+      mentality: 'balanced',
+      squad: [],
+      transferBudget: 1.8
+    },
+    {
+      id: 'c-eng-watford',
+      name: 'Watford Hornets',
+      shortName: 'WAT',
+      colorPrimary: 'yellow',
+      colorSecondary: 'red',
+      country: 'England',
+      leagueId: 'l-elite-championship',
+      valuation: 52,
+      cash: 3.2,
+      debt: 22,
+      interestRate: 0.06,
+      wageBillWeekly: 0.4,
+      fanbaseSize: 160000,
+      stadiumName: 'Vicarage Field',
+      stadiumCapacity: 22000,
+      stadiumLevel: 2,
+      trainingFacilitiesLevel: 2,
+      youthFacilitiesLevel: 2,
+      academyQuality: 50,
+      squadQuality: 54,
+      reputation: 52,
+      sponsorName: 'Rams Brewery',
+      sponsorIncomeWeekly: 0.075,
+      sponsorYearsLeft: 1,
+      ticketPrice: 26,
+      seasonTicketPrice: 330,
+      seasonTicketsSold: 9000,
+      managerId: null,
+      ceoId: null,
+      sportingDirectorId: null,
+      history: [
+        { year: 2025, leaguePosition: 10, leagueName: 'Elite Championship', revenue: 24, profit: 0.2, valuation: 50 }
+      ],
+      boardObjective: {
+        type: 'mid_table',
+        description: 'Aim for a top-half finish',
+        targetProgress: 10,
+        targetGoal: 5,
+        rewardWealth: 1.5,
+        penaltyRep: 3
+      },
+      mentality: 'balanced',
+      squad: [],
+      transferBudget: 1.0
     },
 
     // TIER 3 CLUBS (NATIONAL LEAGUE ONE)
@@ -553,6 +1150,8 @@ export const getEnglandPyramidDatabase = (): GameDatabase => {
         rewardWealth: 3.0,
         penaltyRep: 8
       },
+      mentality: 'balanced',
+      squad: [],
       transferBudget: 2.0
     },
     {
@@ -597,6 +1196,8 @@ export const getEnglandPyramidDatabase = (): GameDatabase => {
         rewardWealth: 3.0,
         penaltyRep: 8
       },
+      mentality: 'balanced',
+      squad: [],
       transferBudget: 1.8
     },
     {
@@ -641,6 +1242,8 @@ export const getEnglandPyramidDatabase = (): GameDatabase => {
         rewardWealth: 3.0,
         penaltyRep: 8
       },
+      mentality: 'balanced',
+      squad: [],
       transferBudget: 1.5
     },
     {
@@ -685,6 +1288,8 @@ export const getEnglandPyramidDatabase = (): GameDatabase => {
         rewardWealth: 3.0,
         penaltyRep: 8
       },
+      mentality: 'balanced',
+      squad: [],
       transferBudget: 2.2
     },
 
@@ -731,6 +1336,8 @@ export const getEnglandPyramidDatabase = (): GameDatabase => {
         rewardWealth: 3.0,
         penaltyRep: 8
       },
+      mentality: 'balanced',
+      squad: [],
       transferBudget: 3.0
     },
     {
@@ -775,6 +1382,8 @@ export const getEnglandPyramidDatabase = (): GameDatabase => {
         rewardWealth: 3.0,
         penaltyRep: 8
       },
+      mentality: 'balanced',
+      squad: [],
       transferBudget: 1.0
     },
     {
@@ -819,6 +1428,8 @@ export const getEnglandPyramidDatabase = (): GameDatabase => {
         rewardWealth: 3.0,
         penaltyRep: 8
       },
+      mentality: 'balanced',
+      squad: [],
       transferBudget: 0.8
     },
     {
@@ -863,6 +1474,8 @@ export const getEnglandPyramidDatabase = (): GameDatabase => {
         rewardWealth: 3.0,
         penaltyRep: 8
       },
+      mentality: 'balanced',
+      squad: [],
       transferBudget: 0.9
     },
 
@@ -909,6 +1522,8 @@ export const getEnglandPyramidDatabase = (): GameDatabase => {
         rewardWealth: 3.0,
         penaltyRep: 8
       },
+      mentality: 'balanced',
+      squad: [],
       transferBudget: 0.4
     },
     {
@@ -953,6 +1568,8 @@ export const getEnglandPyramidDatabase = (): GameDatabase => {
         rewardWealth: 3.0,
         penaltyRep: 8
       },
+      mentality: 'balanced',
+      squad: [],
       transferBudget: 0.3
     },
     {
@@ -997,6 +1614,8 @@ export const getEnglandPyramidDatabase = (): GameDatabase => {
         rewardWealth: 3.0,
         penaltyRep: 8
       },
+      mentality: 'balanced',
+      squad: [],
       transferBudget: 0.2
     },
     {
@@ -1041,6 +1660,8 @@ export const getEnglandPyramidDatabase = (): GameDatabase => {
         rewardWealth: 3.0,
         penaltyRep: 8
       },
+      mentality: 'balanced',
+      squad: [],
       transferBudget: 0.15
     },
 
@@ -1087,6 +1708,8 @@ export const getEnglandPyramidDatabase = (): GameDatabase => {
         rewardWealth: 3.0,
         penaltyRep: 8
       },
+      mentality: 'balanced',
+      squad: [],
       transferBudget: 0.12
     },
     {
@@ -1131,6 +1754,8 @@ export const getEnglandPyramidDatabase = (): GameDatabase => {
         rewardWealth: 3.0,
         penaltyRep: 8
       },
+      mentality: 'balanced',
+      squad: [],
       transferBudget: 0.08
     },
     {
@@ -1175,6 +1800,8 @@ export const getEnglandPyramidDatabase = (): GameDatabase => {
         rewardWealth: 3.0,
         penaltyRep: 8
       },
+      mentality: 'balanced',
+      squad: [],
       transferBudget: 0.06
     },
     {
@@ -1219,6 +1846,8 @@ export const getEnglandPyramidDatabase = (): GameDatabase => {
         rewardWealth: 3.0,
         penaltyRep: 8
       },
+      mentality: 'balanced',
+      squad: [],
       transferBudget: 0.10
     },
 
@@ -1265,6 +1894,8 @@ export const getEnglandPyramidDatabase = (): GameDatabase => {
         rewardWealth: 3.0,
         penaltyRep: 8
       },
+      mentality: 'balanced',
+      squad: [],
       transferBudget: 0.07
     },
     {
@@ -1309,6 +1940,8 @@ export const getEnglandPyramidDatabase = (): GameDatabase => {
         rewardWealth: 3.0,
         penaltyRep: 8
       },
+      mentality: 'balanced',
+      squad: [],
       transferBudget: 0.05
     },
     {
@@ -1353,6 +1986,8 @@ export const getEnglandPyramidDatabase = (): GameDatabase => {
         rewardWealth: 3.0,
         penaltyRep: 8
       },
+      mentality: 'balanced',
+      squad: [],
       transferBudget: 0.03
     },
     {
@@ -1397,6 +2032,8 @@ export const getEnglandPyramidDatabase = (): GameDatabase => {
         rewardWealth: 3.0,
         penaltyRep: 8
       },
+      mentality: 'balanced',
+      squad: [],
       transferBudget: 0.04
     }
   ];
@@ -1408,22 +2045,8 @@ export const getEnglandPyramidDatabase = (): GameDatabase => {
       clubId: club.id, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, points: 0
     }));
 
-    // Generate fixtures
-    const ids = leagueClubs.map((c) => c.id);
-    l.fixtures = [
-      { week: 1, homeClubId: ids[0], awayClubId: ids[1], simulated: false },
-      { week: 1, homeClubId: ids[2], awayClubId: ids[3], simulated: false },
-      { week: 2, homeClubId: ids[1], awayClubId: ids[2], simulated: false },
-      { week: 2, homeClubId: ids[3], awayClubId: ids[0], simulated: false },
-      { week: 3, homeClubId: ids[0], awayClubId: ids[2], simulated: false },
-      { week: 3, homeClubId: ids[1], awayClubId: ids[3], simulated: false },
-      { week: 4, homeClubId: ids[1], awayClubId: ids[0], simulated: false },
-      { week: 4, homeClubId: ids[3], awayClubId: ids[2], simulated: false },
-      { week: 5, homeClubId: ids[2], awayClubId: ids[1], simulated: false },
-      { week: 5, homeClubId: ids[0], awayClubId: ids[3], simulated: false },
-      { week: 6, homeClubId: ids[2], awayClubId: ids[0], simulated: false },
-      { week: 6, homeClubId: ids[3], awayClubId: ids[1], simulated: false },
-    ];
+    // Generate double round-robin fixtures using the generic circle-method generator
+    l.fixtures = generateFixturesForLeague(leagueClubs.map((c) => c.id));
   });
 
   const sponsors = [
@@ -1437,6 +2060,14 @@ export const getEnglandPyramidDatabase = (): GameDatabase => {
     { name: 'Somerset Brews', baseIncomeWeekly: 0.015, tierMin: 5 }
   ];
 
+  // Generate players for each club
+  const players: Player[] = [];
+  clubs.forEach((c) => {
+    const clubPlayers = generatePlayersForClub(c, 20);
+    c.squad = clubPlayers.map((p) => p.id);
+    players.push(...clubPlayers);
+  });
+
   return {
     id: ENGLAND_PYRAMID_DATABASE_ID,
     name: 'England League Pyramid',
@@ -1447,6 +2078,7 @@ export const getEnglandPyramidDatabase = (): GameDatabase => {
     clubs,
     leagues,
     availableStaff: staff,
+    players,
     sponsors
   };
 };

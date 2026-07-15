@@ -38,7 +38,8 @@ const staff: Staff[] = [
 ];
 
 export const getEnglandFullPyramidDatabase = (): GameDatabase => ({
-  ...(rawData as any),
+  ...(rawData as unknown as GameDatabase),
   availableStaff: staff,
+  players: [],
   id: ENGLAND_FULL_PYRAMID_DATABASE_ID,
 });
